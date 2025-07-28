@@ -1,3 +1,4 @@
+#include "server.h"
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <netinet/tcp.h>
@@ -7,35 +8,35 @@
 #include <errno.h>
 #include <unistd.h>
 #include <stdlib.h>
-#define CRLF "\r\n"
-#define PORT 5000
-#define BUFFER 1024
 
-typedef struct
-{
-    char *req;
-    char *header;
-    char *body;
-    char *original;
-} httpreq;
 
-typedef struct
-{
-    char *method;
-    char *path;
-    char *req_original;
+firstparse parse(char* string,char* delimiter,firstparse* http){
+    
+    char* buff = strdup(string);
+    http->original = buff;
+    char* separator = strstr(buff, delimiter);
 
-} request;
+    if (separator != NULL) {
+        *separator = '\0';
+        http->headers = buff;
+        http->body = separator + strlen(delimiter);
+    } else {
+        http->headers = buff;
+        http->body = NULL;
+    }
+    return *http;
+
+}
+
 
 httpreq parse_http(char *string, const char *delimeter, httpreq *http)
 {
     char *buff = strdup(string);
     char *saveptr;
-    http->req = __strtok_r(buff, delimeter, &saveptr); // avoided strtok to make it ready for mutli-thread
-    http->header = __strtok_r(NULL, delimeter, &saveptr);
-    http->body = __strtok_r(NULL, delimeter, &saveptr);
+    http->req = strtok_r(buff, delimeter, &saveptr); // avoided strtok to make it ready for mutli-thread
+    http->header = strtok_r(NULL, "", &saveptr);
     http->original = buff;
-
+    
     return *http;
 }
 
@@ -43,8 +44,9 @@ request request_parser(char *req)
 {
     request line;
     char *req_original = strdup(req);
-    line.method = strtok(req_original, " ");
-    line.path = strtok(NULL, " ");
+    char *saveptr;
+    line.method = strtok_r(req_original, " ",&saveptr);
+    line.path = strtok_r(NULL, " ",&saveptr);
     line.req_original = req_original;
     return line;
 }
@@ -54,29 +56,17 @@ int handle_clinet(int socket)
     size_t n = 0;
     char buffer[BUFFER];
     memset(buffer, 0, sizeof(buffer));
-
-    httpreq http;
+    
+    firstparse http;
     memset(&http, 0, sizeof(http));
+    httpreq http_req;
+    memset(&http_req,0,sizeof(http_req));
+    
 
-    n = read(socket, buffer, sizeof(buffer));
-
-    httpreq parsedhttp = parse_http(buffer, CRLF, &http);
-    request resp = request_parser(parsedhttp.req);
-    printf("method: %s \n", resp.method);
-    printf("path: %s \n", resp.path);
-
-    printf("Headers: %s \n", parsedhttp.header ? parsedhttp.header : "(none)");
-    printf("Body: %s \n", parsedhttp.body ? parsedhttp.body : "(none)");
-    free(parsedhttp.original);
-    free(resp.req_original);
-
-    size_t w = 0;
-    char *res = "HTTP/1.0 200 OK\r\n"
-                "Content-Type: text/plain\r\n"
-                "\r\n"
-                "hello,world";
-    w = write(socket, res, strlen(res));
-
+    n = read(socket, buffer, sizeof(buffer)-1);
+    memset(&http, 0, sizeof(http));
+    if (n > 0) buffer[n] = '\0';
+   
     if (n < 0)
     {
         perror("read()");
@@ -87,7 +77,28 @@ int handle_clinet(int socket)
         printf("succes connection close");
         return 0;
     }
+    firstparse parsed=parse(buffer,DOUBLECRLF,&http);
+   
+    httpreq parsedhttp = parse_http(parsed.headers, CRLF, &http_req);
+    request resp = request_parser(parsedhttp.req);
+    
+    printf("Method: %s\n", resp.method ? resp.method : "(none)");
+    printf("Path: %s\n", resp.path ? resp.path : "(none)");
+    printf("Headers:%s\n", parsedhttp.header ? parsedhttp.header : "(none)");
+    printf("Body: %s\n", parsed.body ? parsed.body : "(none)"); 
+    
+    free(parsedhttp.original);
+    free(resp.req_original);
+    free(parsed.original);
 
+    size_t w = 0;
+    char *res = "HTTP/1.0 200 OK\r\n"
+                "Content-Type: text/plain\r\n"
+                "\r\n"
+                "hello,world";
+    w = write(socket, res, strlen(res));
+
+   
     return 0;
 }
 
