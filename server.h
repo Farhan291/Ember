@@ -5,7 +5,7 @@
 #include <sys/socket.h>
 #define CRLF "\r\n"
 #define DOUBLECRLF "\r\n\r\n"
-#define PORT 5000
+#define PORT 6969
 #define BUFFER 1024
 
 
@@ -20,7 +20,6 @@ typedef struct
 {
     char *req;
     char *header;
-    
     char *original;
 } httpreq;
 
@@ -31,6 +30,8 @@ typedef struct
     char *req_original;
 
 } request;
+
+firstparse parse(char* string,char* delimiter,firstparse* http);
 
 httpreq parse_http(char* string,const char* delimeter,httpreq* http);
 
