@@ -90,68 +90,24 @@ int handle_clinet(int socket)
     printf("Headers:%s\n", parsedhttp.header ? parsedhttp.header : "(none)");
     printf("Body: %s\n", parsed.body ? parsed.body : "(none)");
 
-
-    if(strcmp(resp.path,"/anime")==0){
-        response(socket,"yo bitches");
+    if (strcmp(resp.path, "/anime") == 0)
+    {
+        response(socket, "home.html");
     }
-    else if(strcmp(resp.path,"/hi")==0){
-        response(socket,"hello ");
+    else if (strcmp(resp.path, "/img/haerin.jpg") == 0)
+    {
+        response(socket, "img/haerin.jpg");
     }
-    else if(strcmp(resp.path,"/home")==0){
-        char buff[BUFFER];
-        size_t fd = open("./public/home.html",O_RDONLY);
-        if(fd<0) perror("fd() /home");
-        size_t n = read(fd,buff,sizeof(buff)-1);
-        if(n<0) perror("read() /home");
-        if(n>0) buff[n]='\0';
-        char resp[BUFFER*2];
-        int w = snprintf(resp,sizeof(resp)-1,"HTTP/1.1 200 OK\r\n"
-            "Content-Type: text/html\r\n" // <-- Crucial header for HTML
-            "Content-Length: %zd\r\n"
-            "\r\n"
-            "%s",n,buff);
-        write(socket,resp,w);
-        
+    else if(strcmp(resp.path,"/styles.css")==0){
+        response(socket,"styles.css");
     }
-    else if(strcmp(resp.path,"/img/haerin.jpg")==0){
-        char buf[BUFFER*1000];
-        size_t fd = open("./public/img/haerin.jpg",O_RDONLY);
-        size_t n = read(fd,buf,sizeof(buf)-1);
-        char header_buff[BUFFER];
-        int header_len = snprintf(header_buff, sizeof(header_buff),
-            "HTTP/1.1 200 OK\r\n"
-            "Content-Type: image/jpeg\r\n"
-            "Content-Length: %zd\r\n"
-            "\r\n",
-            n);
-        write(socket,header_buff,header_len);
-        write(socket,buf,n);
-        close(fd);
-
+    else if(strcmp(resp.path,"/script.js")==0){
+        response(socket,"script.js");
     }
-    else{
-        size_t fd;
-        char buff[BUFFER];
-        
-        char error[10]="error";
-        
-        fd = open("./public/404.html",O_RDONLY);
-        if(fd<0) perror("open()");
-        size_t n = read(fd,buff,sizeof(buff)-1);
-        if(n<0) perror("read()");
-        if(n>0) buff[n]='\0';
-        char response[BUFFER * 2];
-            int len = snprintf(response, sizeof(response),
-                "HTTP/1.1 404 Not Found\r\n"
-                "Content-Type: text/html\r\n"
-                "Content-Length: %zd\r\n"
-                "\r\n"
-                "%s", n, buff);
-            
-            write(socket, response, len);
-        close(fd);
-        
-    } 
+    else
+    {
+        response(socket, "404.html");
+    }
     free(parsedhttp.original);
     free(resp.req_original);
     free(parsed.original);
