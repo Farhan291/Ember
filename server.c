@@ -56,7 +56,7 @@ request request_parser(char *req)
 
 int handle_clinet(int socket)
 {
-    size_t n = 0;
+    ssize_t n = 0;
     char buffer[BUFFER];
     memset(buffer, 0, sizeof(buffer));
 
@@ -89,7 +89,15 @@ int handle_clinet(int socket)
     printf("Path: %s\n", resp.path ? resp.path : "(none)");
     printf("Headers:%s\n", parsedhttp.header ? parsedhttp.header : "(none)");
     printf("Body: %s\n", parsed.body ? parsed.body : "(none)");
-
+    if (resp.path == NULL)
+    {
+        printf("port error");
+        free(parsed.original);
+        free(parsedhttp.original);
+        free(resp.req_original);
+        return 1;
+        
+    }
     if (strcmp(resp.path, "/anime") == 0)
     {
         response(socket, "home.html");
@@ -98,11 +106,13 @@ int handle_clinet(int socket)
     {
         response(socket, "img/haerin.jpg");
     }
-    else if(strcmp(resp.path,"/styles.css")==0){
-        response(socket,"styles.css");
+    else if (strcmp(resp.path, "/styles.css") == 0)
+    {
+        response(socket, "styles.css");
     }
-    else if(strcmp(resp.path,"/script.js")==0){
-        response(socket,"script.js");
+    else if (strcmp(resp.path, "/script.js") == 0)
+    {
+        response(socket, "script.js");
     }
     else
     {
@@ -166,7 +176,7 @@ int main(void)
         perror("listen() failed");
         goto exit;
     }
-    printf("Listening on port 5000\n");
+    printf("Listening on port 6969\n");
     while (1)
     {
         int clientsocket = accept(tcp_socket, NULL, NULL);

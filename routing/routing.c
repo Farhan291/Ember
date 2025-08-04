@@ -24,22 +24,39 @@ void response(int socket, char *file)
         contentype = "image/png";
 
     char buff[BUFFER * 100];
+    char lenbuff[BUFFER * 100];
+
     char filename[100];
-    size_t f = snprintf(filename, 100, "./public/%s", file);
+    ssize_t f = snprintf(filename, 100, "./public/%s", file);
     printf("%s \n", filename);
 
-    size_t fd = open(filename, O_RDONLY);
-    if(fd<0) perror("open() respone");
-    size_t n = read(fd, buff, sizeof(buff));
+    ssize_t fd = open(filename, O_RDONLY);
+    if (fd < 0)
+        perror("open() respone");
+
+    ssize_t len;
+    ssize_t resplen = 0;
+    while ((len = read(fd, lenbuff, sizeof(lenbuff))) > 0)
+    {
+        resplen += len;
+    }
+
+    char resp[BUFFER * 100];
+    ssize_t z = snprintf(resp, sizeof(resp) - 1, "HTTP/1.0 200 OK\r\n"
+                                                 "Content-Type: %s\r\n"
+                                                 "Content-length:%zd\r\n"
+                                                 "\r\n",
+                         contentype, resplen);
+    write(socket, resp, z);
+    //printf("%zd",resplen);
+    lseek(fd, 0, SEEK_SET);
+
+    ssize_t n;
+    while ((n = read(fd, buff, sizeof(buff)))>0)
+    {
+        write(socket, buff, n);
+    }
     if (n < 0)
         perror("read() routing");
     close(fd);
-    char resp[BUFFER * 100];
-    size_t z = snprintf(resp, sizeof(resp) - 1, "HTTP/1.0 200 OK\r\n"
-                                                "Content-Type: %s\r\n"
-                                                "Content-lenght:%zd\r\n"
-                                                "\r\n",
-                        contentype, n);
-    write(socket, resp, z);
-    write(socket, buff, n);
 }
