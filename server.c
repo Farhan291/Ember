@@ -35,10 +35,16 @@ firstparse parse(char *string, char *delimiter, firstparse *http)
 httpreq parse_http(char *string, const char *delimeter, httpreq *http)
 {
     char *buff = strdup(string);
-    char *saveptr;
-    http->req = strtok_r(buff, delimeter, &saveptr); // avoided strtok to make it ready for mutli-thread
-    http->header = strtok_r(NULL, " ", &saveptr);
-    http->original = buff;
+    http->original=buff;
+    char *separator;
+    separator = strstr(buff, delimeter);
+    if (separator != NULL)
+    {
+        *separator = '\0';
+        separator = separator + strlen(delimeter);
+        http->req = buff;
+        http->header=separator;
+    }
 
     return *http;
 }
@@ -96,7 +102,6 @@ int handle_clinet(int socket)
         free(parsedhttp.original);
         free(resp.req_original);
         return 1;
-        
     }
     if (strcmp(resp.path, "/anime") == 0)
     {
